@@ -1,0 +1,19 @@
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
+WORKDIR /app
+ARG TARGETPLATFORM
+
+# Copy csproj and restore as distinct layers
+COPY *.csproj ./
+RUN dotnet restore
+
+# Copy everything else and build
+COPY . ./
+RUN chmod +x ./cross-build.sh && ./cross-build.sh
+RUN cd out && ls
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/core/runtime-deps:3.1
+WORKDIR /app
+EXPOSE 80
+COPY --from=build-env /app/out .
+ENTRYPOINT ["/app/testapp"]
